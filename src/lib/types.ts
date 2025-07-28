@@ -1,33 +1,83 @@
-export type tealbaseClientOptions = {
+import { GoTrueClient } from '@tealbase/gotrue-js'
+import { RealtimeClientOptions } from '@tealbase/realtime-js'
+
+type GoTrueClientOptions = ConstructorParameters<typeof GoTrueClient>[0]
+
+export interface tealbaseAuthClientOptions extends GoTrueClientOptions {}
+
+export type Fetch = typeof fetch
+
+export type tealbaseClientOptions<SchemaName> = {
   /**
-   * The Postgres schema which your tables belong to. Must be on the list of exposed schemas in tealbase.
+   * The Postgres schema which your tables belong to. Must be on the list of exposed schemas in tealbase. Defaults to 'public'.
    */
-  schema: string
+  db?: {
+    schema?: SchemaName
+  }
+
+  auth?: {
+    /**
+     * Automatically refreshes the token for logged in users.
+     */
+    autoRefreshToken?: boolean
+    /**
+     * Optional key name used for storing tokens in local storage
+     */
+    storageKey?: string
+    /**
+     * Whether to persist a logged in session to storage.
+     */
+    persistSession?: boolean
+    /**
+     * Detect a session from the URL. Used for OAuth login callbacks.
+     */
+    detectSessionInUrl?: boolean
+    /**
+     * A storage provider. Used to store the logged in session.
+     */
+    storage?: tealbaseAuthClientOptions['storage']
+  }
   /**
-   * Optional headers for initializing the client.
+   * Options passed to the realtime-js instance
    */
-  headers?: { [key: string]: string }
-  /**
-   * Automatically refreshes the token for logged in users.
-   */
-  autoRefreshToken?: boolean
-  /**
-   * Whether to persist a logged in session to storage.
-   */
-  persistSession?: boolean
-  /**
-   * Detect a session from the URL. Used for OAuth login callbacks.
-   */
-  detectSessionInUrl?: boolean
+  realtime?: RealtimeClientOptions
+  global?: {
+    /**
+     * A custom `fetch` implementation.
+     */
+    fetch?: Fetch
+    /**
+     * Optional headers for initializing the client.
+     */
+    headers?: Record<string, string>
+  }
 }
 
-export type tealbaseRealtimePayload<T> = {
-  commit_timestamp: string
-  eventType: 'INSERT' | 'UPDATE' | 'DELETE'
-  schema: string
-  table: string
-  /** The new record. Present for 'INSERT' and 'UPDATE' events. */
-  new: T
-  /** The previous record. Present for 'UPDATE' and 'DELETE' events. */
-  old: T
+export type GenericTable = {
+  Row: Record<string, unknown>
+  Insert: Record<string, unknown>
+  Update: Record<string, unknown>
+}
+
+export type GenericUpdatableView = {
+  Row: Record<string, unknown>
+  Insert: Record<string, unknown>
+  Update: Record<string, unknown>
+}
+
+export type GenericNonUpdatableView = {
+  Row: Record<string, unknown>
+}
+
+export type GenericView = GenericUpdatableView | GenericNonUpdatableView
+
+export type GenericFunction = {
+  Args: Record<string, unknown>
+  Returns: unknown
+}
+
+export type GenericSchema = {
+  Tables: Record<string, GenericTable>
+  Views: Record<string, GenericView>
+  Functions: Record<string, GenericFunction>
 }

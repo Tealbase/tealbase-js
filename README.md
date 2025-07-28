@@ -1,29 +1,79 @@
-# tealbase JS
+# `tealbase-js`
 
-## Commands
-- `npm run clean` - Remove `lib/` directory
-- `npm test` - Run tests with linting and coverage results.
-- `npm run test:integration` - Run the integration tests without docker (requires you to run the docker container separately)
-- `npm run test:integration:full` - Run the integration tests (requires docker to be running)
-- `npm test:only` - Run tests without linting or coverage.
-- `npm test:watch` - You can even re-run tests on file changes!
-- `npm test:prod` - Run tests with minified code.
-- `npm run test:examples` - Test written examples on pure JS for better understanding module usage.
-- `npm run lint` - Run ESlint with airbnb-config
-- `npm run cover` - Get coverage report for your code.
-- `npm run build` - Babel will transpile ES6 => ES5 and minify the code.
-- `npm run build:umd` - Babel will transpile ES6 => UMD, minify the code and webpack to tealbase.js
-- `npm run prepublish` - Hook for npm. Do all the checks before publishing your module.
+An isomorphic JavaScript client for tealbase.
 
+- **Documentation:** https://tealbase.com/docs/client/tealbase-client
+- TypeDoc: https://tealbase.github.io/tealbase-js
 
-## Publishing
+## Usage
 
-Bump the semver.
+First of all, you need to install the library:
 
 ```sh
-npm publish --access=public
+npm install @tealbase/tealbase-js
 ```
 
+Then you're able to import the library and establish the connection with the database:
+
+```js
+import { createClient } from '@tealbase/tealbase-js'
+
+// Create a single tealbase client for interacting with your database
+const tealbase = createClient('https://xyzcompany.tealbase.co', 'public-anon-key')
+```
+
+### UMD
+
+You can now use plain `<script>`s to import tealbase-js from CDNs, like:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@tealbase/tealbase-js"></script>
+```
+
+or even:
+
+```html
+<script src="https://unpkg.com/@tealbase/tealbase-js"></script>
+```
+
+Then you can use it from a global `tealbase` variable:
+
+```html
+<script>
+  const { createClient } = tealbase
+  const _tealbase = createClient('https://xyzcompany.tealbase.co', 'public-anon-key')
+
+  console.log('tealbase Instance: ', _tealbase)
+  // ...
+</script>
+```
+
+### ESM
+
+You can now use type="module" `<script>`s to import tealbase-js from CDNs, like:
+
+```html
+<script type="module">
+  import { createClient } from 'https://cdn.jsdelivr.net/npm/@tealbase/tealbase-js/+esm'
+  const tealbase = createClient('https://xyzcompany.tealbase.co', 'public-anon-key')
+
+  console.log('tealbase Instance: ', tealbase)
+  // ...
+</script>
+```
+
+### Custom `fetch` implementation
+
+`tealbase-js` uses the [`cross-fetch`](https://www.npmjs.com/package/cross-fetch) library to make HTTP requests, but an alternative `fetch` implementation can be provided as an option. This is most useful in environments where `cross-fetch` is not compatible, for instance Cloudflare Workers:
+
+```js
+import { createClient } from '@tealbase/tealbase-js'
+
+// Provide a custom `fetch` implementation as an option
+const tealbase = createClient('https://xyzcompany.tealbase.co', 'public-anon-key', {
+  fetch: (...args) => fetch(...args),
+})
+```
 
 ## Sponsors
 
