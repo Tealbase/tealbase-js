@@ -1,4 +1,4 @@
-# Supabase JS
+# tealbase JS
 
 ## Commands
 - `npm run clean` - Remove `lib/` directory
