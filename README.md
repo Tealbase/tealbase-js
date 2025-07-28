@@ -12,6 +12,7 @@
 - `npm run lint` - Run ESlint with airbnb-config
 - `npm run cover` - Get coverage report for your code.
 - `npm run build` - Babel will transpile ES6 => ES5 and minify the code.
+- `npm run build:umd` - Babel will transpile ES6 => UMD, minify the code and webpack to tealbase.js
 - `npm run prepublish` - Hook for npm. Do all the checks before publishing your module.
 
 
@@ -22,3 +23,10 @@ Bump the semver.
 ```sh
 npm publish --access=public
 ```
+
+
+## Sponsors
+
+We are building the features of Firebase using enterprise-grade, open source products. We support existing communities wherever possible, and if the products don’t exist we build them and open source them ourselves. Thanks to these sponsors who are making the OSS ecosystem better for everyone.
+
+[![New Sponsor](https://user-images.githubusercontent.com/10214025/90518111-e74bbb00-e198-11ea-8f88-c9e3c1aa4b5b.png)](https://github.com/sponsors/tealbase)
