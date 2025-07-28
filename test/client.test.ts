@@ -1,22 +1,60 @@
-import { createClient } from '../src/index'
+import { createClient, tealbaseClient } from '../src/index'
 
 const URL = 'http://localhost:3000'
 const KEY = 'some.fake.key'
 
 const tealbase = createClient(URL, KEY)
 
-test('tealbase Client', async () => {
-  expect(tealbase).toMatchSnapshot()
+test('it should create the client connection', async () => {
+  expect(tealbase).toBeDefined()
+  expect(tealbase).toBeInstanceOf(tealbaseClient)
 })
 
-test('from()', async () => {
-  const builder = tealbase.from('table')
-  expect(builder).toMatchSnapshot()
+test('it should throw an error if no valid params are provided', async () => {
+  expect(() => createClient('', KEY)).toThrowError('tealbaseUrl is required.')
+  expect(() => createClient(URL, '')).toThrowError('tealbaseKey is required.')
 })
 
-test('from().select()', async () => {
-  const builder = tealbase.from('table').select('*')
-  expect(builder).toMatchSnapshot()
+describe('Custom Headers', () => {
+  test('should have custom header set', () => {
+    const customHeader = { 'X-Test-Header': 'value' }
+
+    const request = createClient(URL, KEY, { global: { headers: customHeader } }).rpc('')
+
+    // @ts-ignore
+    const getHeaders = request.headers
+
+    expect(getHeaders).toHaveProperty('X-Test-Header', 'value')
+  })
+})
+
+describe('Realtime url', () => {
+  test('should switch protocol from http to ws', () => {
+    const client = createClient('http://localhost:3000', KEY)
+
+    // @ts-ignore
+    const realtimeUrl = client.realtimeUrl
+
+    expect(realtimeUrl).toEqual('ws://localhost:3000/realtime/v1')
+  })
+
+  test('should switch protocol from https to wss', () => {
+    const client = createClient('https://localhost:3000', KEY)
+
+    // @ts-ignore
+    const realtimeUrl = client.realtimeUrl
+
+    expect(realtimeUrl).toEqual('wss://localhost:3000/realtime/v1')
+  })
+
+  test('should ignore case', () => {
+    const client = createClient('HTTP://localhost:3000', KEY)
+
+    // @ts-ignore
+    const realtimeUrl = client.realtimeUrl
+
+    expect(realtimeUrl).toEqual('ws://localhost:3000/realtime/v1')
+  })
 })
 
 // Socket should close when there are no open connections

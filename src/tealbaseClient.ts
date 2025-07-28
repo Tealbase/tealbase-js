@@ -1,65 +1,151 @@
+import { FunctionsClient } from '@tealbase/functions-js'
+import { AuthChangeEvent } from '@tealbase/gotrue-js'
+import {
+  PostgrestClient,
+  PostgrestFilterBuilder,
+  PostgrestQueryBuilder,
+} from '@tealbase/postgrest-js'
+import {
+  RealtimeChannel,
+  RealtimeChannelOptions,
+  RealtimeClient,
+  RealtimeClientOptions,
+} from '@tealbase/realtime-js'
+import { StorageClient as tealbaseStorageClient } from '@tealbase/storage-js'
 import { DEFAULT_HEADERS } from './lib/constants'
-import { tealbaseClientOptions } from './lib/types'
+import { fetchWithAuth } from './lib/fetch'
+import { stripTrailingSlash, applySettingDefaults } from './lib/helpers'
 import { tealbaseAuthClient } from './lib/tealbaseAuthClient'
-import { tealbaseQueryBuilder } from './lib/tealbaseQueryBuilder'
-import { PostgrestClient } from '@tealbase/postgrest-js'
-import { RealtimeClient, RealtimeSubscription } from '@tealbase/realtime-js'
+import { Fetch, GenericSchema, tealbaseClientOptions, tealbaseAuthClientOptions } from './lib/types'
 
-const DEFAULT_OPTIONS = {
+const DEFAULT_GLOBAL_OPTIONS = {
+  headers: DEFAULT_HEADERS,
+}
+
+const DEFAULT_DB_OPTIONS = {
   schema: 'public',
+}
+
+const DEFAULT_AUTH_OPTIONS: tealbaseAuthClientOptions = {
   autoRefreshToken: true,
   persistSession: true,
   detectSessionInUrl: true,
-  headers: DEFAULT_HEADERS,
 }
+
+const DEFAULT_REALTIME_OPTIONS: RealtimeClientOptions = {}
 
 /**
  * tealbase Client.
  *
  * An isomorphic Javascript client for interacting with Postgres.
  */
-export default class tealbaseClient {
+export default class tealbaseClient<
+  Database = any,
+  SchemaName extends string & keyof Database = 'public' extends keyof Database
+    ? 'public'
+    : string & keyof Database,
+  Schema extends GenericSchema = Database[SchemaName] extends GenericSchema
+    ? Database[SchemaName]
+    : any
+> {
   /**
    * tealbase Auth allows you to create and manage user sessions for access to data that is secured by access policies.
    */
   auth: tealbaseAuthClient
-  protected schema: string
-  protected restUrl: string
+
   protected realtimeUrl: string
   protected authUrl: string
+  protected storageUrl: string
+  protected functionsUrl: string
   protected realtime: RealtimeClient
+  protected rest: PostgrestClient<Database, SchemaName>
+  protected storageKey: string
+  protected fetch?: Fetch
+  protected changedAccessToken: string | undefined
+
+  protected headers: {
+    [key: string]: string
+  }
 
   /**
    * Create a new client for use in the browser.
    * @param tealbaseUrl The unique tealbase URL which is supplied when you create a new project in your project dashboard.
    * @param tealbaseKey The unique tealbase Key which is supplied when you create a new project in your project dashboard.
-   * @param options.schema You can switch in between schemas. The schema needs to be on the list of exposed schemas inside tealbase.
-   * @param options.autoRefreshToken Set to "true" if you want to automatically refresh the token before expiring.
-   * @param options.persistSession Set to "true" if you want to automatically save the user session into local storage.
-   * @param options.detectSessionInUrl Set to "true" if you want to automatically detects OAuth grants in the URL and signs in the user.
-   * @param options.headers Any additional headers to send with each network request.
+   * @param options.db.schema You can switch in between schemas. The schema needs to be on the list of exposed schemas inside tealbase.
+   * @param options.auth.autoRefreshToken Set to "true" if you want to automatically refresh the token before expiring.
+   * @param options.auth.persistSession Set to "true" if you want to automatically save the user session into local storage.
+   * @param options.auth.detectSessionInUrl Set to "true" if you want to automatically detects OAuth grants in the URL and signs in the user.
+   * @param options.realtime Options passed along to realtime-js constructor.
+   * @param options.global.fetch A custom fetch implementation.
+   * @param options.global.headers Any additional headers to send with each network request.
    */
   constructor(
     protected tealbaseUrl: string,
     protected tealbaseKey: string,
-    options?: tealbaseClientOptions
+    options?: tealbaseClientOptions<SchemaName>
   ) {
     if (!tealbaseUrl) throw new Error('tealbaseUrl is required.')
     if (!tealbaseKey) throw new Error('tealbaseKey is required.')
 
-    const settings = { ...DEFAULT_OPTIONS, ...options }
-    this.restUrl = `${tealbaseUrl}/rest/v1`
-    this.realtimeUrl = `${tealbaseUrl}/realtime/v1`.replace('http', 'ws')
-    this.authUrl = `${tealbaseUrl}/auth/v1`
-    this.schema = settings.schema
+    const _tealbaseUrl = stripTrailingSlash(tealbaseUrl)
 
-    this.auth = this._inittealbaseAuthClient(settings)
-    this.realtime = this._initRealtimeClient()
+    this.realtimeUrl = `${_tealbaseUrl}/realtime/v1`.replace(/^http/i, 'ws')
+    this.authUrl = `${_tealbaseUrl}/auth/v1`
+    this.storageUrl = `${_tealbaseUrl}/storage/v1`
 
-    // In the future we might allow the user to pass in a logger to receive these events.
-    // this.realtime.onOpen(() => console.log('OPEN'))
-    // this.realtime.onClose(() => console.log('CLOSED'))
-    // this.realtime.onError((e: Error) => console.log('Socket error', e))
+    const isPlatform = _tealbaseUrl.match(/(tealbase\.co)|(tealbase\.in)/)
+    if (isPlatform) {
+      const urlParts = _tealbaseUrl.split('.')
+      this.functionsUrl = `${urlParts[0]}.functions.${urlParts[1]}.${urlParts[2]}`
+    } else {
+      this.functionsUrl = `${_tealbaseUrl}/functions/v1`
+    }
+    // default storage key uses the tealbase project ref as a namespace
+    const defaultStorageKey = `sb-${new URL(this.authUrl).hostname.split('.')[0]}-auth-token`
+    const DEFAULTS = {
+      db: DEFAULT_DB_OPTIONS,
+      realtime: DEFAULT_REALTIME_OPTIONS,
+      auth: { ...DEFAULT_AUTH_OPTIONS, storageKey: defaultStorageKey },
+      global: DEFAULT_GLOBAL_OPTIONS,
+    }
+
+    const settings = applySettingDefaults(options ?? {}, DEFAULTS)
+
+    this.storageKey = settings.auth?.storageKey ?? ''
+    this.headers = settings.global?.headers ?? {}
+
+    this.auth = this._inittealbaseAuthClient(
+      settings.auth ?? {},
+      this.headers,
+      settings.global?.fetch
+    )
+    this.fetch = fetchWithAuth(tealbaseKey, this._getAccessToken.bind(this), settings.global?.fetch)
+
+    this.realtime = this._initRealtimeClient({ headers: this.headers, ...settings.realtime })
+    this.rest = new PostgrestClient(`${_tealbaseUrl}/rest/v1`, {
+      headers: this.headers,
+      schema: settings.db?.schema,
+      fetch: this.fetch,
+    })
+
+    this._listenForAuthEvents()
+  }
+
+  /**
+   * tealbase Functions allows you to deploy and invoke edge functions.
+   */
+  get functions() {
+    return new FunctionsClient(this.functionsUrl, {
+      headers: this.headers,
+      customFetch: this.fetch,
+    })
+  }
+
+  /**
+   * tealbase Storage allows you to manage user-generated content, such as photos or videos.
+   */
+  get storage() {
+    return new tealbaseStorageClient(this.storageUrl, this.headers, this.fetch)
   }
 
   /**
@@ -67,102 +153,147 @@ export default class tealbaseClient {
    *
    * @param table The table name to operate on.
    */
-  from<T = any>(table: string): tealbaseQueryBuilder<T> {
-    const url = `${this.restUrl}/${table}`
-    return new tealbaseQueryBuilder<T>(url, {
-      headers: this._getAuthHeaders(),
-      schema: this.schema,
-      realtime: this.realtime,
-      table,
-    })
+  from<
+    TableName extends string & keyof Schema['Tables'],
+    Table extends Schema['Tables'][TableName]
+  >(relation: TableName): PostgrestQueryBuilder<Table>
+  from<ViewName extends string & keyof Schema['Views'], View extends Schema['Views'][ViewName]>(
+    relation: ViewName
+  ): PostgrestQueryBuilder<View>
+  from(relation: string): PostgrestQueryBuilder<any>
+  from(relation: string): PostgrestQueryBuilder<any> {
+    return this.rest.from(relation)
   }
 
   /**
-   * Perform a stored procedure call.
+   * Perform a function call.
    *
    * @param fn  The function name to call.
-   * @param params  The parameters to pass to the function call.
-   */
-  rpc<T = any>(fn: string, params?: object) {
-    let rest = this._initPostgRESTClient()
-    return rest.rpc<T>(fn, params)
-  }
-
-  /**
-   * Removes an active subscription and returns the number of open connections.
+   * @param args  The parameters to pass to the function call.
+   * @param options.head   When set to true, no data will be returned.
+   * @param options.count  Count algorithm to use to count rows in a table.
    *
-   * @param subscription The subscription you want to remove.
    */
-  removeSubscription(subscription: RealtimeSubscription) {
-    return new Promise(async (resolve) => {
-      try {
-        if (!subscription.isClosed()) {
-          await this._closeChannel(subscription)
-        }
-        let openSubscriptions = this.realtime.channels.length
-        if (!openSubscriptions) {
-          let { error } = await this.realtime.disconnect()
-          if (error) return resolve({ error })
-        }
-        return resolve({ error: null, data: { openSubscriptions } })
-      } catch (error) {
-        return resolve({ error })
-      }
-    })
+  rpc<
+    FunctionName extends string & keyof Schema['Functions'],
+    Function_ extends Schema['Functions'][FunctionName]
+  >(
+    fn: FunctionName,
+    args: Function_['Args'] = {},
+    options?: {
+      head?: boolean
+      count?: 'exact' | 'planned' | 'estimated'
+    }
+  ): PostgrestFilterBuilder<
+    Function_['Returns'] extends any[]
+      ? Function_['Returns'][number] extends Record<string, unknown>
+        ? Function_['Returns'][number]
+        : never
+      : never,
+    Function_['Returns']
+  > {
+    return this.rest.rpc(fn, args, options)
   }
 
   /**
-   * Returns an array of all your subscriptions.
+   * Creates a Realtime channel with Broadcast, Presence, and Postgres Changes.
+   *
+   * @param {string} name - The name of the Realtime channel.
+   * @param {Object} opts - The options to pass to the Realtime channel.
+   *
    */
-  getSubscriptions(): RealtimeSubscription[] {
-    return this.realtime.channels
+  channel(name: string, opts: RealtimeChannelOptions = { config: {} }): RealtimeChannel {
+    return this.realtime.channel(name, opts)
   }
 
-  private _inittealbaseAuthClient(settings: tealbaseClientOptions) {
+  /**
+   * Returns all Realtime channels.
+   */
+  getChannels(): RealtimeChannel[] {
+    return this.realtime.getChannels()
+  }
+
+  /**
+   * Unsubscribes and removes Realtime channel from Realtime client.
+   *
+   * @param {RealtimeChannel} channel - The name of the Realtime channel.
+   *
+   */
+  removeChannel(channel: RealtimeChannel): Promise<'ok' | 'timed out' | 'error'> {
+    return this.realtime.removeChannel(channel)
+  }
+
+  /**
+   * Unsubscribes and removes all Realtime channels from Realtime client.
+   */
+  removeAllChannels(): Promise<('ok' | 'timed out' | 'error')[]> {
+    return this.realtime.removeAllChannels()
+  }
+
+  private async _getAccessToken() {
+    const { data } = await this.auth.getSession()
+
+    return data.session?.access_token ?? null
+  }
+
+  private _inittealbaseAuthClient(
+    {
+      autoRefreshToken,
+      persistSession,
+      detectSessionInUrl,
+      storage,
+      storageKey,
+    }: tealbaseAuthClientOptions,
+    headers?: Record<string, string>,
+    fetch?: Fetch
+  ) {
+    const authHeaders = {
+      Authorization: `Bearer ${this.tealbaseKey}`,
+      apikey: `${this.tealbaseKey}`,
+    }
     return new tealbaseAuthClient({
       url: this.authUrl,
-      headers: {
-        Authorization: `Bearer ${this.tealbaseKey}`,
-        apikey: `${this.tealbaseKey}`,
-      },
-      autoRefreshToken: settings.autoRefreshToken,
-      persistSession: settings.persistSession,
-      detectSessionInUrl: settings.detectSessionInUrl,
+      headers: { ...authHeaders, ...headers },
+      storageKey: storageKey,
+      autoRefreshToken,
+      persistSession,
+      detectSessionInUrl,
+      storage,
+      fetch,
     })
   }
 
-  private _initRealtimeClient() {
+  private _initRealtimeClient(options: RealtimeClientOptions) {
     return new RealtimeClient(this.realtimeUrl, {
-      params: { apikey: this.tealbaseKey },
+      ...options,
+      params: { ...{ apikey: this.tealbaseKey }, ...options?.params },
     })
   }
 
-  private _initPostgRESTClient() {
-    return new PostgrestClient(this.restUrl, {
-      headers: this._getAuthHeaders(),
-      schema: this.schema,
+  private _listenForAuthEvents() {
+    let data = this.auth.onAuthStateChange((event, session) => {
+      this._handleTokenChanged(event, session?.access_token, 'CLIENT')
     })
+    return data
   }
 
-  private _getAuthHeaders(): { [key: string]: string } {
-    let headers: { [key: string]: string } = {}
-    let authBearer = this.auth.session().data?.access_token ?? this.tealbaseKey
-    headers['apikey'] = this.tealbaseKey
-    headers['Authorization'] = `Bearer ${authBearer}`
-    return headers
-  }
+  private _handleTokenChanged(
+    event: AuthChangeEvent,
+    token: string | undefined,
+    source: 'CLIENT' | 'STORAGE'
+  ) {
+    if (
+      (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') &&
+      this.changedAccessToken !== token
+    ) {
+      // Token has changed
+      this.realtime.setAuth(token ?? null)
 
-  private _closeChannel(subscription: RealtimeSubscription) {
-    return new Promise((resolve, reject) => {
-      subscription
-        .unsubscribe()
-        .receive('ok', () => {
-          this.realtime.remove(subscription)
-          return resolve(true)
-        })
-        .receive('error', (e: Error) => {
-          return reject(e)
-        })
-    })
+      this.changedAccessToken = token
+    } else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+      // Token is removed
+      this.realtime.setAuth(this.tealbaseKey)
+      if (source == 'STORAGE') this.auth.signOut()
+    }
   }
 }
