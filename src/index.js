@@ -1,13 +1,15 @@
 import { uuid } from './utils/Helpers'
 import Realtime from './Realtime'
+import { Auth } from './Auth'
 import { PostgrestClient } from '@tealbase/postgrest-js'
 
 class tealbaseClient {
-  constructor(tealbaseUrl, tealbaseKey, options = {}) {
+  constructor(tealbaseUrl, tealbaseKey, options = { autoRefreshToken: true }) {
     this.tealbaseUrl = null
     this.tealbaseKey = null
     this.restUrl = null
     this.realtimeUrl = null
+    this.authUrl = null
     this.schema = 'public'
     this.subscriptions = {}
 
@@ -17,6 +19,8 @@ class tealbaseClient {
     if (options.schema) this.schema = options.schema
 
     this.authenticate(tealbaseUrl, tealbaseKey)
+
+    this.auth = new Auth(this.authUrl, tealbaseKey, { autoRefreshToken: options.autoRefreshToken })
   }
 
   /**
@@ -28,6 +32,7 @@ class tealbaseClient {
     this.tealbaseKey = tealbaseKey
     this.restUrl = `${tealbaseUrl}/rest/v1`
     this.realtimeUrl = `${tealbaseUrl}/realtime/v1`.replace('http', 'ws')
+    this.authUrl = `${tealbaseUrl}/auth/v1`
   }
 
   clear() {
@@ -84,8 +89,12 @@ class tealbaseClient {
   }
 
   initClient() {
+    let headers = { apikey: this.tealbaseKey }
+
+    if (this.auth.accessToken) headers['Authorization'] = `Bearer ${this.auth.accessToken}`
+
     let rest = new PostgrestClient(this.restUrl, {
-      headers: { apikey: this.tealbaseKey },
+      headers,
       schema: this.schema,
     })
     let api = rest.from(this.tableName)

@@ -1,8 +1,12 @@
+require('dotenv').config()
 import { assert } from 'chai'
 import { createClient } from '../../src'
 
+const tealbase_URL = process.env.tealbase_URL || 'http://localhost:1234'
+const tealbase_KEY = process.env.tealbase_KEY || 'examplekey'
+
 describe('test reading from the rest interface', () => {
-  const tealbase = createClient('http://localhost:8000', 'examplekey')
+  const tealbase = createClient(tealbase_URL, tealbase_KEY)
 
   it('from() and select()', async () => {
     const response = await tealbase
