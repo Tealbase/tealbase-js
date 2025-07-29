@@ -21,7 +21,7 @@
   "sideEffects": false,
   "repository": "tealbase/tealbase-js",
   "scripts": {
-    "clean": "rimraf dist docs",
+    "clean": "rimraf dist docs/v2",
     "format": "prettier --write \"{src,test}/**/*.ts\"",
     "build": "run-s clean format build:*",
     "build:main": "tsc -p tsconfig.json",
@@ -38,9 +38,9 @@
   },
   "dependencies": {
     "@tealbase/functions-js": "^2.1.0",
-    "@tealbase/gotrue-js": "^2.22.0",
-    "@tealbase/postgrest-js": "^1.1.1",
-    "@tealbase/realtime-js": "^2.7.2",
+    "@tealbase/gotrue-js": "2.43.1",
+    "@tealbase/postgrest-js": "^1.7.0",
+    "@tealbase/realtime-js": "^2.7.3",
     "@tealbase/storage-js": "^2.5.1",
     "cross-fetch": "^3.1.5"
   },

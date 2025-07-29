@@ -62,7 +62,7 @@ export default class tealbaseClient<
   protected rest: PostgrestClient<Database, SchemaName>
   protected storageKey: string
   protected fetch?: Fetch
-  protected changedAccessToken: string | undefined
+  protected changedAccessToken?: string
 
   protected headers: {
     [key: string]: string
@@ -93,14 +93,8 @@ export default class tealbaseClient<
     this.realtimeUrl = `${_tealbaseUrl}/realtime/v1`.replace(/^http/i, 'ws')
     this.authUrl = `${_tealbaseUrl}/auth/v1`
     this.storageUrl = `${_tealbaseUrl}/storage/v1`
+    this.functionsUrl = `${_tealbaseUrl}/functions/v1`
 
-    const isPlatform = _tealbaseUrl.match(/(tealbase\.co)|(tealbase\.in)/)
-    if (isPlatform) {
-      const urlParts = _tealbaseUrl.split('.')
-      this.functionsUrl = `${urlParts[0]}.functions.${urlParts[1]}.${urlParts[2]}`
-    } else {
-      this.functionsUrl = `${_tealbaseUrl}/functions/v1`
-    }
     // default storage key uses the tealbase project ref as a namespace
     const defaultStorageKey = `sb-${new URL(this.authUrl).hostname.split('.')[0]}-auth-token`
     const DEFAULTS = {
@@ -149,11 +143,6 @@ export default class tealbaseClient<
     return new tealbaseStorageClient(this.storageUrl, this.headers, this.fetch)
   }
 
-  /**
-   * Perform a table operation.
-   *
-   * @param table The table name to operate on.
-   */
   from<
     TableName extends string & keyof Schema['Tables'],
     Table extends Schema['Tables'][TableName]
@@ -162,6 +151,11 @@ export default class tealbaseClient<
     relation: ViewName
   ): PostgrestQueryBuilder<Schema, View>
   from(relation: string): PostgrestQueryBuilder<Schema, any>
+  /**
+   * Perform a query on a table or a view.
+   *
+   * @param relation - The table or view name to query
+   */
   from(relation: string): PostgrestQueryBuilder<Schema, any> {
     return this.rest.from(relation)
   }
@@ -169,11 +163,23 @@ export default class tealbaseClient<
   /**
    * Perform a function call.
    *
-   * @param fn  The function name to call.
-   * @param args  The parameters to pass to the function call.
-   * @param options.head   When set to true, no data will be returned.
-   * @param options.count  Count algorithm to use to count rows in a table.
+   * @param fn - The function name to call
+   * @param args - The arguments to pass to the function call
+   * @param options - Named parameters
+   * @param options.head - When set to `true`, `data` will not be returned.
+   * Useful if you only need the count.
+   * @param options.count - Count algorithm to use to count rows returned by the
+   * function. Only applicable for [set-returning
+   * functions](https://www.postgresql.org/docs/current/functions-srf.html).
    *
+   * `"exact"`: Exact but slow count algorithm. Performs a `COUNT(*)` under the
+   * hood.
+   *
+   * `"planned"`: Approximated but fast count algorithm. Uses the Postgres
+   * statistics under the hood.
+   *
+   * `"estimated"`: Uses exact count for low numbers and planned count for high
+   * numbers.
    */
   rpc<
     FunctionName extends string & keyof Schema['Functions'],
@@ -246,6 +252,7 @@ export default class tealbaseClient<
       storage,
       storageKey,
       flowType,
+      debug,
     }: tealbaseAuthClientOptions,
     headers?: Record<string, string>,
     fetch?: Fetch
@@ -263,6 +270,7 @@ export default class tealbaseClient<
       detectSessionInUrl,
       storage,
       flowType,
+      debug,
       fetch,
     })
   }
@@ -276,15 +284,15 @@ export default class tealbaseClient<
 
   private _listenForAuthEvents() {
     let data = this.auth.onAuthStateChange((event, session) => {
-      this._handleTokenChanged(event, session?.access_token, 'CLIENT')
+      this._handleTokenChanged(event, 'CLIENT', session?.access_token)
     })
     return data
   }
 
   private _handleTokenChanged(
     event: AuthChangeEvent,
-    token: string | undefined,
-    source: 'CLIENT' | 'STORAGE'
+    source: 'CLIENT' | 'STORAGE',
+    token?: string
   ) {
     if (
       (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') &&
