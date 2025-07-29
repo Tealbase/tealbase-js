@@ -1,8 +1,4 @@
-# `tealbase-js`
-
-[![Coverage Status](https://coveralls.io/repos/github/tealbase/tealbase-js/badge.svg?branch=master)](https://coveralls.io/github/tealbase/tealbase-js?branch=master)
-
-An isomorphic JavaScript client for tealbase.
+# `tealbase-js` - Isomorphic JavaScript Client for tealbase.
 
 - **Documentation:** https://tealbase.com/docs/reference
 - TypeDoc: https://tealbase.github.io/tealbase-js/v2/
@@ -26,16 +22,16 @@ const tealbase = createClient('https://xyzcompany.tealbase.co', 'public-anon-key
 
 ### UMD
 
-You can now use plain `<script>`s to import tealbase-js from CDNs, like:
+You can use plain `<script>`s to import tealbase-js from CDNs, like:
 
 ```html
-<script src="https://cdn.jsdelivr.net/npm/@tealbase/tealbase-js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@tealbase/tealbase-js@2"></script>
 ```
 
 or even:
 
 ```html
-<script src="https://unpkg.com/@tealbase/tealbase-js"></script>
+<script src="https://unpkg.com/@tealbase/tealbase-js@2"></script>
 ```
 
 Then you can use it from a global `tealbase` variable:
@@ -52,7 +48,7 @@ Then you can use it from a global `tealbase` variable:
 
 ### ESM
 
-You can now use type="module" `<script>`s to import tealbase-js from CDNs, like:
+You can use `<script type="module">` to import tealbase-js from CDNs, like:
 
 ```html
 <script type="module">
@@ -62,6 +58,15 @@ You can now use type="module" `<script>`s to import tealbase-js from CDNs, like:
   console.log('tealbase Instance: ', tealbase)
   // ...
 </script>
+```
+
+
+### Deno
+
+You can use tealbase-js in the Deno runtime via esm.sh:
+
+```js
+import { createClient } from 'https://esm.sh/@tealbase/tealbase-js@2'
 ```
 
 ### Custom `fetch` implementation
@@ -84,3 +89,7 @@ const tealbase = createClient('https://xyzcompany.tealbase.co', 'public-anon-key
 We are building the features of Firebase using enterprise-grade, open source products. We support existing communities wherever possible, and if the products don’t exist we build them and open source them ourselves. Thanks to these sponsors who are making the OSS ecosystem better for everyone.
 
 [![New Sponsor](https://user-images.githubusercontent.com/10214025/90518111-e74bbb00-e198-11ea-8f88-c9e3c1aa4b5b.png)](https://github.com/sponsors/tealbase)
+
+## Badges
+
+[![Coverage Status](https://coveralls.io/repos/github/tealbase/tealbase-js/badge.svg?branch=master)](https://coveralls.io/github/tealbase/tealbase-js?branch=master)
