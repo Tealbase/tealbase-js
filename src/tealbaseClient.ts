@@ -173,6 +173,8 @@ export default class tealbaseClient<
    * @param options - Named parameters
    * @param options.head - When set to `true`, `data` will not be returned.
    * Useful if you only need the count.
+   * @param options.get - When set to `true`, the function will be called with
+   * read-only access mode.
    * @param options.count - Count algorithm to use to count rows returned by the
    * function. Only applicable for [set-returning
    * functions](https://www.postgresql.org/docs/current/functions-srf.html).
@@ -191,6 +193,7 @@ export default class tealbaseClient<
     args: Fn['Args'] = {},
     options: {
       head?: boolean
+      get?: boolean
       count?: 'exact' | 'planned' | 'estimated'
     } = {}
   ): PostgrestFilterBuilder<
@@ -274,6 +277,9 @@ export default class tealbaseClient<
       flowType,
       debug,
       fetch,
+      // auth checks if there is a custom authorizaiton header using this flag
+      // so it knows whether to return an error when getUser is called with no session
+      hasCustomAuthorizationHeader: 'Authorization' in this.headers ?? false,
     })
   }
 
