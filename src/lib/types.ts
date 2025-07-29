@@ -36,6 +36,10 @@ export type tealbaseClientOptions<SchemaName> = {
      * A storage provider. Used to store the logged-in session.
      */
     storage?: tealbaseAuthClientOptions['storage']
+    /**
+     * OAuth flow to use - defaults to implicit flow. PKCE is recommended for mobile and server-side applications.
+     */
+    flowType?: tealbaseAuthClientOptions['flowType']
   }
   /**
    * Options passed to the realtime-js instance

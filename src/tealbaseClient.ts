@@ -30,6 +30,7 @@ const DEFAULT_AUTH_OPTIONS: tealbaseAuthClientOptions = {
   autoRefreshToken: true,
   persistSession: true,
   detectSessionInUrl: true,
+  flowType: 'implicit',
 }
 
 const DEFAULT_REALTIME_OPTIONS: RealtimeClientOptions = {}
@@ -52,12 +53,12 @@ export default class tealbaseClient<
    * tealbase Auth allows you to create and manage user sessions for access to data that is secured by access policies.
    */
   auth: tealbaseAuthClient
+  realtime: RealtimeClient
 
   protected realtimeUrl: string
   protected authUrl: string
   protected storageUrl: string
   protected functionsUrl: string
-  protected realtime: RealtimeClient
   protected rest: PostgrestClient<Database, SchemaName>
   protected storageKey: string
   protected fetch?: Fetch
@@ -244,6 +245,7 @@ export default class tealbaseClient<
       detectSessionInUrl,
       storage,
       storageKey,
+      flowType,
     }: tealbaseAuthClientOptions,
     headers?: Record<string, string>,
     fetch?: Fetch
@@ -260,6 +262,7 @@ export default class tealbaseClient<
       persistSession,
       detectSessionInUrl,
       storage,
+      flowType,
       fetch,
     })
   }
@@ -291,7 +294,7 @@ export default class tealbaseClient<
       this.realtime.setAuth(token ?? null)
 
       this.changedAccessToken = token
-    } else if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+    } else if (event === 'SIGNED_OUT') {
       // Token is removed
       this.realtime.setAuth(this.tealbaseKey)
       if (source == 'STORAGE') this.auth.signOut()
