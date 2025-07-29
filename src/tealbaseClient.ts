@@ -12,28 +12,16 @@ import {
   RealtimeClientOptions,
 } from '@tealbase/realtime-js'
 import { StorageClient as tealbaseStorageClient } from '@tealbase/storage-js'
-import { DEFAULT_HEADERS } from './lib/constants'
+import {
+  DEFAULT_GLOBAL_OPTIONS,
+  DEFAULT_DB_OPTIONS,
+  DEFAULT_AUTH_OPTIONS,
+  DEFAULT_REALTIME_OPTIONS,
+} from './lib/constants'
 import { fetchWithAuth } from './lib/fetch'
 import { stripTrailingSlash, applySettingDefaults } from './lib/helpers'
 import { tealbaseAuthClient } from './lib/tealbaseAuthClient'
 import { Fetch, GenericSchema, tealbaseClientOptions, tealbaseAuthClientOptions } from './lib/types'
-
-const DEFAULT_GLOBAL_OPTIONS = {
-  headers: DEFAULT_HEADERS,
-}
-
-const DEFAULT_DB_OPTIONS = {
-  schema: 'public',
-}
-
-const DEFAULT_AUTH_OPTIONS: tealbaseAuthClientOptions = {
-  autoRefreshToken: true,
-  persistSession: true,
-  detectSessionInUrl: true,
-  flowType: 'implicit',
-}
-
-const DEFAULT_REALTIME_OPTIONS: RealtimeClientOptions = {}
 
 /**
  * tealbase Client.
@@ -64,9 +52,7 @@ export default class tealbaseClient<
   protected fetch?: Fetch
   protected changedAccessToken?: string
 
-  protected headers: {
-    [key: string]: string
-  }
+  protected headers: Record<string, string>
 
   /**
    * Create a new client for use in the browser.
@@ -143,23 +129,42 @@ export default class tealbaseClient<
     return new tealbaseStorageClient(this.storageUrl, this.headers, this.fetch)
   }
 
+  // NOTE: signatures must be kept in sync with PostgrestClient.from
   from<
     TableName extends string & keyof Schema['Tables'],
     Table extends Schema['Tables'][TableName]
-  >(relation: TableName): PostgrestQueryBuilder<Schema, Table>
+  >(relation: TableName): PostgrestQueryBuilder<Schema, Table, TableName>
   from<ViewName extends string & keyof Schema['Views'], View extends Schema['Views'][ViewName]>(
     relation: ViewName
-  ): PostgrestQueryBuilder<Schema, View>
-  from(relation: string): PostgrestQueryBuilder<Schema, any>
+  ): PostgrestQueryBuilder<Schema, View, ViewName>
   /**
    * Perform a query on a table or a view.
    *
    * @param relation - The table or view name to query
    */
-  from(relation: string): PostgrestQueryBuilder<Schema, any> {
+  from(relation: string): PostgrestQueryBuilder<Schema, any, any> {
     return this.rest.from(relation)
   }
 
+  // NOTE: signatures must be kept in sync with PostgrestClient.schema
+  /**
+   * Select a schema to query or perform an function (rpc) call.
+   *
+   * The schema needs to be on the list of exposed schemas inside tealbase.
+   *
+   * @param schema - The schema to query
+   */
+  schema<DynamicSchema extends string & keyof Database>(
+    schema: DynamicSchema
+  ): PostgrestClient<
+    Database,
+    DynamicSchema,
+    Database[DynamicSchema] extends GenericSchema ? Database[DynamicSchema] : any
+  > {
+    return this.rest.schema<DynamicSchema>(schema)
+  }
+
+  // NOTE: signatures must be kept in sync with PostgrestClient.rpc
   /**
    * Perform a function call.
    *
@@ -181,24 +186,21 @@ export default class tealbaseClient<
    * `"estimated"`: Uses exact count for low numbers and planned count for high
    * numbers.
    */
-  rpc<
-    FunctionName extends string & keyof Schema['Functions'],
-    Function_ extends Schema['Functions'][FunctionName]
-  >(
-    fn: FunctionName,
-    args: Function_['Args'] = {},
-    options?: {
+  rpc<FnName extends string & keyof Schema['Functions'], Fn extends Schema['Functions'][FnName]>(
+    fn: FnName,
+    args: Fn['Args'] = {},
+    options: {
       head?: boolean
       count?: 'exact' | 'planned' | 'estimated'
-    }
+    } = {}
   ): PostgrestFilterBuilder<
     Schema,
-    Function_['Returns'] extends any[]
-      ? Function_['Returns'][number] extends Record<string, unknown>
-        ? Function_['Returns'][number]
+    Fn['Returns'] extends any[]
+      ? Fn['Returns'][number] extends Record<string, unknown>
+        ? Fn['Returns'][number]
         : never
       : never,
-    Function_['Returns']
+    Fn['Returns']
   > {
     return this.rest.rpc(fn, args, options)
   }
