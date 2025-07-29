@@ -1,9 +1,11 @@
 # `tealbase-js`
 
+[![Coverage Status](https://coveralls.io/repos/github/tealbase/tealbase-js/badge.svg?branch=master)](https://coveralls.io/github/tealbase/tealbase-js?branch=master)
+
 An isomorphic JavaScript client for tealbase.
 
-- **Documentation:** https://tealbase.com/docs/client/tealbase-client
-- TypeDoc: https://tealbase.github.io/tealbase-js
+- **Documentation:** https://tealbase.com/docs/reference
+- TypeDoc: https://tealbase.github.io/tealbase-js/v2/
 
 ## Usage
 
@@ -71,7 +73,9 @@ import { createClient } from '@tealbase/tealbase-js'
 
 // Provide a custom `fetch` implementation as an option
 const tealbase = createClient('https://xyzcompany.tealbase.co', 'public-anon-key', {
-  fetch: (...args) => fetch(...args),
+  global: {
+    fetch: (...args) => fetch(...args),
+  },
 })
 ```
 
