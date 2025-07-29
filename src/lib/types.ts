@@ -1,5 +1,6 @@
 import { GoTrueClient } from '@tealbase/gotrue-js'
 import { RealtimeClientOptions } from '@tealbase/realtime-js'
+import { PostgrestError } from '@tealbase/postgrest-js'
 
 type GoTrueClientOptions = ConstructorParameters<typeof GoTrueClient>[0]
 
@@ -42,8 +43,14 @@ export type tealbaseClientOptions<SchemaName> = {
     flowType?: tealbaseAuthClientOptions['flowType']
     /**
      * If debug messages for authentication client are emitted. Can be used to inspect the behavior of the library.
-     */ 
-    debug?: boolean
+     */
+    debug?: tealbaseAuthClientOptions['debug']
+    /**
+     * Provide your own locking mechanism based on the environment. By default no locking is done at this time.
+     *
+     * @experimental
+     */
+    lock?: tealbaseAuthClientOptions['lock']
   }
   /**
    * Options passed to the realtime-js instance
@@ -67,11 +74,7 @@ export type GenericTable = {
   Update: Record<string, unknown>
 }
 
-export type GenericUpdatableView = {
-  Row: Record<string, unknown>
-  Insert: Record<string, unknown>
-  Update: Record<string, unknown>
-}
+export type GenericUpdatableView = GenericTable
 
 export type GenericNonUpdatableView = {
   Row: Record<string, unknown>
@@ -89,3 +92,10 @@ export type GenericSchema = {
   Views: Record<string, GenericView>
   Functions: Record<string, GenericFunction>
 }
+
+/**
+ * Helper types for query results.
+ */
+export type QueryResult<T> = T extends PromiseLike<infer U> ? U : never
+export type QueryData<T> = T extends PromiseLike<{ data: infer U }> ? Exclude<U, null> : never
+export type QueryError = PostgrestError

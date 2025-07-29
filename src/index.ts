@@ -17,7 +17,7 @@ export {
 } from '@tealbase/functions-js'
 export * from '@tealbase/realtime-js'
 export { default as tealbaseClient } from './tealbaseClient'
-export type { tealbaseClientOptions } from './lib/types'
+export type { tealbaseClientOptions, QueryResult, QueryData, QueryError } from './lib/types'
 
 /**
  * Creates a new tealbase Client.
@@ -35,5 +35,5 @@ export const createClient = <
   tealbaseKey: string,
   options?: tealbaseClientOptions<SchemaName>
 ): tealbaseClient<Database, SchemaName, Schema> => {
-  return new tealbaseClient(tealbaseUrl, tealbaseKey, options)
+  return new tealbaseClient<Database, SchemaName, Schema>(tealbaseUrl, tealbaseKey, options)
 }
