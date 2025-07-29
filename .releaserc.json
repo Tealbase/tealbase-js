@@ -14,7 +14,7 @@
           "dist/main/lib/version.d.ts",
           "dist/module/lib/version.js",
           "dist/module/lib/version.d.ts",
-          "dist/umd/supabase.js"
+          "dist/umd/tealbase.js"
         ],
         "placeholder": "0.0.0-automated"
       }
