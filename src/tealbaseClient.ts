@@ -156,12 +156,12 @@ export default class tealbaseClient<
   from<
     TableName extends string & keyof Schema['Tables'],
     Table extends Schema['Tables'][TableName]
-  >(relation: TableName): PostgrestQueryBuilder<Table>
+  >(relation: TableName): PostgrestQueryBuilder<Schema, Table>
   from<ViewName extends string & keyof Schema['Views'], View extends Schema['Views'][ViewName]>(
     relation: ViewName
-  ): PostgrestQueryBuilder<View>
-  from(relation: string): PostgrestQueryBuilder<any>
-  from(relation: string): PostgrestQueryBuilder<any> {
+  ): PostgrestQueryBuilder<Schema, View>
+  from(relation: string): PostgrestQueryBuilder<Schema, any>
+  from(relation: string): PostgrestQueryBuilder<Schema, any> {
     return this.rest.from(relation)
   }
 
@@ -185,6 +185,7 @@ export default class tealbaseClient<
       count?: 'exact' | 'planned' | 'estimated'
     }
   ): PostgrestFilterBuilder<
+    Schema,
     Function_['Returns'] extends any[]
       ? Function_['Returns'][number] extends Record<string, unknown>
         ? Function_['Returns'][number]
@@ -294,6 +295,7 @@ export default class tealbaseClient<
       // Token is removed
       this.realtime.setAuth(this.tealbaseKey)
       if (source == 'STORAGE') this.auth.signOut()
+      this.changedAccessToken = undefined
     }
   }
 }

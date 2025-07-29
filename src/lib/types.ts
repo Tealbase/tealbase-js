@@ -9,7 +9,7 @@ export type Fetch = typeof fetch
 
 export type tealbaseClientOptions<SchemaName> = {
   /**
-   * The Postgres schema which your tables belong to. Must be on the list of exposed schemas in tealbase. Defaults to 'public'.
+   * The Postgres schema which your tables belong to. Must be on the list of exposed schemas in tealbase. Defaults to `public`.
    */
   db?: {
     schema?: SchemaName
@@ -17,23 +17,23 @@ export type tealbaseClientOptions<SchemaName> = {
 
   auth?: {
     /**
-     * Automatically refreshes the token for logged in users.
+     * Automatically refreshes the token for logged-in users. Defaults to true.
      */
     autoRefreshToken?: boolean
     /**
-     * Optional key name used for storing tokens in local storage
+     * Optional key name used for storing tokens in local storage.
      */
     storageKey?: string
     /**
-     * Whether to persist a logged in session to storage.
+     * Whether to persist a logged-in session to storage. Defaults to true.
      */
     persistSession?: boolean
     /**
-     * Detect a session from the URL. Used for OAuth login callbacks.
+     * Detect a session from the URL. Used for OAuth login callbacks. Defaults to true.
      */
     detectSessionInUrl?: boolean
     /**
-     * A storage provider. Used to store the logged in session.
+     * A storage provider. Used to store the logged-in session.
      */
     storage?: tealbaseAuthClientOptions['storage']
   }
