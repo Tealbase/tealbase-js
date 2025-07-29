@@ -1,10 +1,10 @@
-import { GoTrueClient } from '@tealbase/gotrue-js'
+import { AuthClient } from '@tealbase/auth-js'
 import { RealtimeClientOptions } from '@tealbase/realtime-js'
 import { PostgrestError } from '@tealbase/postgrest-js'
 
-type GoTrueClientOptions = ConstructorParameters<typeof GoTrueClient>[0]
+type AuthClientOptions = ConstructorParameters<typeof AuthClient>[0]
 
-export interface tealbaseAuthClientOptions extends GoTrueClientOptions {}
+export interface tealbaseAuthClientOptions extends AuthClientOptions {}
 
 export type Fetch = typeof fetch
 

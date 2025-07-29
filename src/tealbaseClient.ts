@@ -1,5 +1,5 @@
 import { FunctionsClient } from '@tealbase/functions-js'
-import { AuthChangeEvent } from '@tealbase/gotrue-js'
+import { AuthChangeEvent } from '@tealbase/auth-js'
 import {
   PostgrestClient,
   PostgrestFilterBuilder,

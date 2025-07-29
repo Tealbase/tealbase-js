@@ -1,8 +1,8 @@
 import tealbaseClient from './tealbaseClient'
 import type { GenericSchema, tealbaseClientOptions } from './lib/types'
 
-export * from '@tealbase/gotrue-js'
-export type { User as AuthUser, Session as AuthSession } from '@tealbase/gotrue-js'
+export * from '@tealbase/auth-js'
+export type { User as AuthUser, Session as AuthSession } from '@tealbase/auth-js'
 export type {
   PostgrestResponse,
   PostgrestSingleResponse,
