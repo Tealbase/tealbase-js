@@ -14,7 +14,7 @@ export {
   FunctionsFetchError,
   FunctionsRelayError,
   FunctionsError,
-  FunctionInvokeOptions,
+  type FunctionInvokeOptions,
   FunctionRegion,
 } from '@tealbase/functions-js'
 export * from '@tealbase/realtime-js'

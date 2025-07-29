@@ -40,14 +40,15 @@
     "serve:coverage": "npm run test:coverage && serve test/coverage"
   },
   "dependencies": {
-    "@tealbase/auth-js": "2.64.1",
-    "@tealbase/functions-js": "2.3.1",
+    "@tealbase/auth-js": "2.64.2",
+    "@tealbase/functions-js": "2.4.1",
     "@tealbase/node-fetch": "2.6.15",
-    "@tealbase/postgrest-js": "1.15.2",
-    "@tealbase/realtime-js": "2.9.5",
-    "@tealbase/storage-js": "2.5.5"
+    "@tealbase/postgrest-js": "1.15.6",
+    "@tealbase/realtime-js": "2.10.1",
+    "@tealbase/storage-js": "2.6.0"
   },
   "devDependencies": {
+    "@sebbo2002/semantic-release-jsr": "^1.0.0",
     "@types/jest": "^29.2.5",
     "husky": "^4.3.0",
     "jest": "^29.3.1",

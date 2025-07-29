@@ -92,20 +92,20 @@ export default class tealbaseClient<
 
     const settings = applySettingDefaults(options ?? {}, DEFAULTS)
 
-    this.storageKey = settings.auth?.storageKey ?? ''
-    this.headers = settings.global?.headers ?? {}
+    this.storageKey = settings.auth.storageKey ?? ''
+    this.headers = settings.global.headers ?? {}
 
     this.auth = this._inittealbaseAuthClient(
       settings.auth ?? {},
       this.headers,
-      settings.global?.fetch
+      settings.global.fetch
     )
-    this.fetch = fetchWithAuth(tealbaseKey, this._getAccessToken.bind(this), settings.global?.fetch)
+    this.fetch = fetchWithAuth(tealbaseKey, this._getAccessToken.bind(this), settings.global.fetch)
 
     this.realtime = this._initRealtimeClient({ headers: this.headers, ...settings.realtime })
     this.rest = new PostgrestClient(`${_tealbaseUrl}/rest/v1`, {
       headers: this.headers,
-      schema: settings.db?.schema,
+      schema: settings.db.schema,
       fetch: this.fetch,
     })
 
@@ -115,7 +115,7 @@ export default class tealbaseClient<
   /**
    * tealbase Functions allows you to deploy and invoke edge functions.
    */
-  get functions() {
+  get functions(): FunctionsClient {
     return new FunctionsClient(this.functionsUrl, {
       headers: this.headers,
       customFetch: this.fetch,
@@ -125,7 +125,7 @@ export default class tealbaseClient<
   /**
    * tealbase Storage allows you to manage user-generated content, such as photos or videos.
    */
-  get storage() {
+  get storage(): tealbaseStorageClient {
     return new tealbaseStorageClient(this.storageUrl, this.headers, this.fetch)
   }
 

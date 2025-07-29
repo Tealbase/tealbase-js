@@ -23,7 +23,7 @@ export function applySettingDefaults<
 >(
   options: tealbaseClientOptions<SchemaName>,
   defaults: tealbaseClientOptions<any>
-): tealbaseClientOptions<SchemaName> {
+): Required<tealbaseClientOptions<SchemaName>> {
   const {
     db: dbOptions,
     auth: authOptions,
