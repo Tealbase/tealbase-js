@@ -14,6 +14,8 @@ export {
   FunctionsFetchError,
   FunctionsRelayError,
   FunctionsError,
+  FunctionInvokeOptions,
+  FunctionRegion,
 } from '@tealbase/functions-js'
 export * from '@tealbase/realtime-js'
 export { default as tealbaseClient } from './tealbaseClient'
