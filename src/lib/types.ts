@@ -1,10 +1,10 @@
-import { GoTrueClient } from '@tealbase/gotrue-js'
+import { AuthClient } from '@tealbase/auth-js'
 import { RealtimeClientOptions } from '@tealbase/realtime-js'
 import { PostgrestError } from '@tealbase/postgrest-js'
 
-type GoTrueClientOptions = ConstructorParameters<typeof GoTrueClient>[0]
+type AuthClientOptions = ConstructorParameters<typeof AuthClient>[0]
 
-export interface tealbaseAuthClientOptions extends GoTrueClientOptions {}
+export interface tealbaseAuthClientOptions extends AuthClientOptions {}
 
 export type Fetch = typeof fetch
 
@@ -66,6 +66,18 @@ export type tealbaseClientOptions<SchemaName> = {
      */
     headers?: Record<string, string>
   }
+  /**
+   * Optional function for using a third-party authentication system with
+   * tealbase. The function should return an access token or ID token (JWT) by
+   * obtaining it from the third-party auth client library. Note that this
+   * function may be called concurrently and many times. Use memoization and
+   * locking techniques if this is not supported by the client libraries.
+   *
+   * When set, the `auth` namespace of the tealbase client cannot be used.
+   * Create another client if you wish to use tealbase Auth and third-party
+   * authentications concurrently in the same application.
+   */
+  accessToken?: () => Promise<string>
 }
 
 export type GenericTable = {

@@ -1,0 +1,6 @@
+{
+  "name": "@tealbase/tealbase-js",
+  "version": "0.0.0-automated",
+  "exports": "./src/index.ts",
+  "exclude": ["examples"]
+}

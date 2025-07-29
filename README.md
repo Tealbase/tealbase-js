@@ -63,10 +63,10 @@ You can use `<script type="module">` to import tealbase-js from CDNs, like:
 
 ### Deno
 
-You can use tealbase-js in the Deno runtime via esm.sh:
+You can use tealbase-js in the Deno runtime via [JSR](https://jsr.io/@tealbase/tealbase-js):
 
 ```js
-import { createClient } from 'https://esm.sh/@tealbase/tealbase-js@2'
+import { createClient } from 'jsr:@tealbase/tealbase-js@2'
 ```
 
 ### Custom `fetch` implementation
