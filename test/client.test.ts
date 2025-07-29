@@ -7,6 +7,18 @@ const KEY = 'some.fake.key'
 
 const tealbase = createClient(URL, KEY)
 
+test('it should create a client with third-party auth accessToken', async () => {
+  const client = createClient(URL, KEY, {
+    accessToken: async () => {
+      return 'jwt'
+    },
+  })
+
+  expect(() => client.auth.getUser()).toThrowError(
+    '@tealbase/tealbase-js: tealbase Client is configured with the accessToken option, accessing tealbase.auth.getUser is not possible'
+  )
+})
+
 test('it should create the client connection', async () => {
   expect(tealbase).toBeDefined()
   expect(tealbase).toBeInstanceOf(tealbaseClient)

@@ -51,6 +51,7 @@ export default class tealbaseClient<
   protected storageKey: string
   protected fetch?: Fetch
   protected changedAccessToken?: string
+  protected accessToken?: () => Promise<string>
 
   protected headers: Record<string, string>
 
@@ -95,11 +96,26 @@ export default class tealbaseClient<
     this.storageKey = settings.auth.storageKey ?? ''
     this.headers = settings.global.headers ?? {}
 
-    this.auth = this._inittealbaseAuthClient(
-      settings.auth ?? {},
-      this.headers,
-      settings.global.fetch
-    )
+    if (!settings.accessToken) {
+      this.auth = this._inittealbaseAuthClient(
+        settings.auth ?? {},
+        this.headers,
+        settings.global.fetch
+      )
+    } else {
+      this.accessToken = settings.accessToken
+
+      this.auth = new Proxy<tealbaseAuthClient>({} as any, {
+        get: (_, prop) => {
+          throw new Error(
+            `@tealbase/tealbase-js: tealbase Client is configured with the accessToken option, accessing tealbase.auth.${String(
+              prop
+            )} is not possible`
+          )
+        },
+      })
+    }
+
     this.fetch = fetchWithAuth(tealbaseKey, this._getAccessToken.bind(this), settings.global.fetch)
 
     this.realtime = this._initRealtimeClient({ headers: this.headers, ...settings.realtime })
@@ -109,7 +125,9 @@ export default class tealbaseClient<
       fetch: this.fetch,
     })
 
-    this._listenForAuthEvents()
+    if (!settings.accessToken) {
+      this._listenForAuthEvents()
+    }
   }
 
   /**
@@ -244,6 +262,10 @@ export default class tealbaseClient<
   }
 
   private async _getAccessToken() {
+    if (this.accessToken) {
+      return await this.accessToken()
+    }
+
     const { data } = await this.auth.getSession()
 
     return data.session?.access_token ?? null
