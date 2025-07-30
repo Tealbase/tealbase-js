@@ -221,7 +221,9 @@ export default class tealbaseClient<
         ? Fn['Returns'][number]
         : never
       : never,
-    Fn['Returns']
+    Fn['Returns'],
+    FnName,
+    null
   > {
     return this.rest.rpc(fn, args, options)
   }
@@ -279,6 +281,7 @@ export default class tealbaseClient<
       storage,
       storageKey,
       flowType,
+      lock,
       debug,
     }: tealbaseAuthClientOptions,
     headers?: Record<string, string>,
@@ -297,6 +300,7 @@ export default class tealbaseClient<
       detectSessionInUrl,
       storage,
       flowType,
+      lock,
       debug,
       fetch,
       // auth checks if there is a custom authorizaiton header using this flag

@@ -1,6 +1,6 @@
 # `tealbase-js` - Isomorphic JavaScript Client for tealbase.
 
-- **Documentation:** https://tealbase.com/docs/reference
+- **Documentation:** https://tealbase.com/docs/reference/javascript/start
 - TypeDoc: https://tealbase.github.io/tealbase-js/v2/
 
 ## Usage
@@ -59,7 +59,6 @@ You can use `<script type="module">` to import tealbase-js from CDNs, like:
   // ...
 </script>
 ```
-
 
 ### Deno
 
