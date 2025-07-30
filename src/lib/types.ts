@@ -1,6 +1,7 @@
 import { AuthClient } from '@tealbase/auth-js'
 import { RealtimeClientOptions } from '@tealbase/realtime-js'
 import { PostgrestError } from '@tealbase/postgrest-js'
+import { StorageClientOptions } from '@tealbase/storage-js/dist/module/StorageClient'
 
 type AuthClientOptions = ConstructorParameters<typeof AuthClient>[0]
 
@@ -56,6 +57,7 @@ export type tealbaseClientOptions<SchemaName> = {
    * Options passed to the realtime-js instance
    */
   realtime?: RealtimeClientOptions
+  storage?: StorageClientOptions
   global?: {
     /**
      * A custom `fetch` implementation.

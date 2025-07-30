@@ -92,6 +92,19 @@ jobs:
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path-to-lcov: ./test/coverage/lcov.info
+          parallel: true
+          flag-name: node-${{ matrix.node }}-${{ matrix.os }}
+
+  coveralls-finish:
+    name: Coveralls Finished
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Coveralls Finished
+        uses: coverallsapp/github-action@v2
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          parallel-finished: true
 
   deno-tests:
     name: Deno Tests / ${{ matrix.deno }}
@@ -145,6 +158,12 @@ jobs:
         if: ${{ matrix.deno == '2.x' }}
         run: npm run test:integration:browser
 
+      - name: Run Edge Functions Tests
+        if: ${{ matrix.deno == '2.x' }}
+        run: |
+          cd test/deno
+          npm run test:edge-functions
+
       - name: Stop tealbase
         if: always()
         run: tealbase stop
@@ -176,8 +195,13 @@ jobs:
           npm ci
           npm run build
 
+      - name: Install jq
+        run: sudo apt-get update && sudo apt-get install -y jq
+
       - name: Run integration tests
-        run: npm run test:integration || npm run test:integration
+        run: |
+          export tealbase_SERVICE_ROLE_KEY="$(tealbase status --output json | jq -r '.SERVICE_ROLE_KEY')"
+          npm run test:integration || npm run test:integration
 
       - name: Stop tealbase
         if: always()
