@@ -49,7 +49,7 @@
     "update:test-deps:bun": "npm run build && npm pack && cp tealbase-tealbase-js-*.tgz test/integration/bun/tealbase-tealbase-js-0.0.0-automated.tgz && cd test/integration/bun && bun install"
   },
   "dependencies": {
-    "@tealbase/auth-js": "2.71.0",
+    "@tealbase/auth-js": "2.71.1",
     "@tealbase/functions-js": "2.4.5",
     "@tealbase/node-fetch": "2.6.15",
     "@tealbase/postgrest-js": "1.19.4",
