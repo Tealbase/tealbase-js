@@ -43,8 +43,8 @@
     "@tealbase/auth-js": "2.65.1",
     "@tealbase/functions-js": "2.4.3",
     "@tealbase/node-fetch": "2.6.15",
-    "@tealbase/postgrest-js": "1.17.0",
-    "@tealbase/realtime-js": "2.10.7",
+    "@tealbase/postgrest-js": "1.16.3",
+    "@tealbase/realtime-js": "2.11.2",
     "@tealbase/storage-js": "2.7.1"
   },
   "devDependencies": {

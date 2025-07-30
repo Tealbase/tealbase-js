@@ -118,7 +118,11 @@ export default class tealbaseClient<
 
     this.fetch = fetchWithAuth(tealbaseKey, this._getAccessToken.bind(this), settings.global.fetch)
 
-    this.realtime = this._initRealtimeClient({ headers: this.headers, ...settings.realtime })
+    this.realtime = this._initRealtimeClient({
+      headers: this.headers,
+      accessToken: this._getAccessToken,
+      ...settings.realtime,
+    })
     this.rest = new PostgrestClient(`${_tealbaseUrl}/rest/v1`, {
       headers: this.headers,
       schema: settings.db.schema,
@@ -221,9 +225,7 @@ export default class tealbaseClient<
         ? Fn['Returns'][number]
         : never
       : never,
-    Fn['Returns'],
-    FnName,
-    null
+    Fn['Returns']
   > {
     return this.rest.rpc(fn, args, options)
   }
@@ -332,9 +334,6 @@ export default class tealbaseClient<
       (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') &&
       this.changedAccessToken !== token
     ) {
-      // Token has changed
-      this.realtime.setAuth(token ?? null)
-
       this.changedAccessToken = token
     } else if (event === 'SIGNED_OUT') {
       // Token is removed
