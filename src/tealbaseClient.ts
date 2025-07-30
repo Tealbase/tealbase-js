@@ -19,7 +19,7 @@ import {
   DEFAULT_REALTIME_OPTIONS,
 } from './lib/constants'
 import { fetchWithAuth } from './lib/fetch'
-import { stripTrailingSlash, applySettingDefaults } from './lib/helpers'
+import { ensureTrailingSlash, applySettingDefaults } from './lib/helpers'
 import { tealbaseAuthClient } from './lib/tealbaseAuthClient'
 import { Fetch, GenericSchema, tealbaseClientOptions, tealbaseAuthClientOptions } from './lib/types'
 
@@ -42,16 +42,20 @@ export default class tealbaseClient<
    */
   auth: tealbaseAuthClient
   realtime: RealtimeClient
+  /**
+   * tealbase Storage allows you to manage user-generated content, such as photos or videos.
+   */
+  storage: tealbaseStorageClient
 
-  protected realtimeUrl: string
-  protected authUrl: string
-  protected storageUrl: string
-  protected functionsUrl: string
-  protected rest: PostgrestClient<Database, SchemaName>
+  protected realtimeUrl: URL
+  protected authUrl: URL
+  protected storageUrl: URL
+  protected functionsUrl: URL
+  protected rest: PostgrestClient<Database, SchemaName, Schema>
   protected storageKey: string
   protected fetch?: Fetch
   protected changedAccessToken?: string
-  protected accessToken?: () => Promise<string>
+  protected accessToken?: () => Promise<string | null>
 
   protected headers: Record<string, string>
 
@@ -64,6 +68,7 @@ export default class tealbaseClient<
    * @param options.auth.persistSession Set to "true" if you want to automatically save the user session into local storage.
    * @param options.auth.detectSessionInUrl Set to "true" if you want to automatically detects OAuth grants in the URL and signs in the user.
    * @param options.realtime Options passed along to realtime-js constructor.
+   * @param options.storage Options passed along to the storage-js constructor.
    * @param options.global.fetch A custom fetch implementation.
    * @param options.global.headers Any additional headers to send with each network request.
    */
@@ -75,15 +80,17 @@ export default class tealbaseClient<
     if (!tealbaseUrl) throw new Error('tealbaseUrl is required.')
     if (!tealbaseKey) throw new Error('tealbaseKey is required.')
 
-    const _tealbaseUrl = stripTrailingSlash(tealbaseUrl)
+    const _tealbaseUrl = ensureTrailingSlash(tealbaseUrl)
+    const baseUrl = new URL(_tealbaseUrl)
 
-    this.realtimeUrl = `${_tealbaseUrl}/realtime/v1`.replace(/^http/i, 'ws')
-    this.authUrl = `${_tealbaseUrl}/auth/v1`
-    this.storageUrl = `${_tealbaseUrl}/storage/v1`
-    this.functionsUrl = `${_tealbaseUrl}/functions/v1`
+    this.realtimeUrl = new URL('realtime/v1', baseUrl)
+    this.realtimeUrl.protocol = this.realtimeUrl.protocol.replace('http', 'ws')
+    this.authUrl = new URL('auth/v1', baseUrl)
+    this.storageUrl = new URL('storage/v1', baseUrl)
+    this.functionsUrl = new URL('functions/v1', baseUrl)
 
     // default storage key uses the tealbase project ref as a namespace
-    const defaultStorageKey = `sb-${new URL(this.authUrl).hostname.split('.')[0]}-auth-token`
+    const defaultStorageKey = `sb-${baseUrl.hostname.split('.')[0]}-auth-token`
     const DEFAULTS = {
       db: DEFAULT_DB_OPTIONS,
       realtime: DEFAULT_REALTIME_OPTIONS,
@@ -117,13 +124,23 @@ export default class tealbaseClient<
     }
 
     this.fetch = fetchWithAuth(tealbaseKey, this._getAccessToken.bind(this), settings.global.fetch)
-
-    this.realtime = this._initRealtimeClient({ headers: this.headers, ...settings.realtime })
-    this.rest = new PostgrestClient(`${_tealbaseUrl}/rest/v1`, {
+    this.realtime = this._initRealtimeClient({
+      headers: this.headers,
+      accessToken: this._getAccessToken.bind(this),
+      ...settings.realtime,
+    })
+    this.rest = new PostgrestClient(new URL('rest/v1', baseUrl).href, {
       headers: this.headers,
       schema: settings.db.schema,
       fetch: this.fetch,
     })
+
+    this.storage = new tealbaseStorageClient(
+      this.storageUrl.href,
+      this.headers,
+      this.fetch,
+      options?.storage
+    )
 
     if (!settings.accessToken) {
       this._listenForAuthEvents()
@@ -134,17 +151,10 @@ export default class tealbaseClient<
    * tealbase Functions allows you to deploy and invoke edge functions.
    */
   get functions(): FunctionsClient {
-    return new FunctionsClient(this.functionsUrl, {
+    return new FunctionsClient(this.functionsUrl.href, {
       headers: this.headers,
       customFetch: this.fetch,
     })
-  }
-
-  /**
-   * tealbase Storage allows you to manage user-generated content, such as photos or videos.
-   */
-  get storage(): tealbaseStorageClient {
-    return new tealbaseStorageClient(this.storageUrl, this.headers, this.fetch)
   }
 
   // NOTE: signatures must be kept in sync with PostgrestClient.from
@@ -221,7 +231,9 @@ export default class tealbaseClient<
         ? Fn['Returns'][number]
         : never
       : never,
-    Fn['Returns']
+    Fn['Returns'],
+    FnName,
+    null
   > {
     return this.rest.rpc(fn, args, options)
   }
@@ -279,6 +291,7 @@ export default class tealbaseClient<
       storage,
       storageKey,
       flowType,
+      lock,
       debug,
     }: tealbaseAuthClientOptions,
     headers?: Record<string, string>,
@@ -289,7 +302,7 @@ export default class tealbaseClient<
       apikey: `${this.tealbaseKey}`,
     }
     return new tealbaseAuthClient({
-      url: this.authUrl,
+      url: this.authUrl.href,
       headers: { ...authHeaders, ...headers },
       storageKey: storageKey,
       autoRefreshToken,
@@ -297,16 +310,17 @@ export default class tealbaseClient<
       detectSessionInUrl,
       storage,
       flowType,
+      lock,
       debug,
       fetch,
       // auth checks if there is a custom authorizaiton header using this flag
       // so it knows whether to return an error when getUser is called with no session
-      hasCustomAuthorizationHeader: 'Authorization' in this.headers ?? false,
+      hasCustomAuthorizationHeader: 'Authorization' in this.headers,
     })
   }
 
   private _initRealtimeClient(options: RealtimeClientOptions) {
-    return new RealtimeClient(this.realtimeUrl, {
+    return new RealtimeClient(this.realtimeUrl.href, {
       ...options,
       params: { ...{ apikey: this.tealbaseKey }, ...options?.params },
     })
@@ -328,13 +342,9 @@ export default class tealbaseClient<
       (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') &&
       this.changedAccessToken !== token
     ) {
-      // Token has changed
-      this.realtime.setAuth(token ?? null)
-
       this.changedAccessToken = token
     } else if (event === 'SIGNED_OUT') {
-      // Token is removed
-      this.realtime.setAuth(this.tealbaseKey)
+      this.realtime.setAuth()
       if (source == 'STORAGE') this.auth.signOut()
       this.changedAccessToken = undefined
     }
