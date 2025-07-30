@@ -1,6 +1,6 @@
 import { PostgrestClient } from '@tealbase/postgrest-js'
-import { createClient, tealbaseClient } from '../src/index'
-import { Database } from './types'
+import { createClient, tealbaseClient } from '../../src/index'
+import { Database } from '../types'
 
 const URL = 'http://localhost:3000'
 const KEY = 'some.fake.key'

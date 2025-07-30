@@ -1,6 +1,6 @@
-import { tealbaseAuthClient } from '../src/lib/tealbaseAuthClient'
-import tealbaseClient from '../src/tealbaseClient'
-import { DEFAULT_HEADERS } from '../src/lib/constants'
+import { tealbaseAuthClient } from '../../src/lib/tealbaseAuthClient'
+import tealbaseClient from '../../src/tealbaseClient'
+import { DEFAULT_HEADERS } from '../../src/lib/constants'
 
 const DEFAULT_OPTIONS = {
   auth: {
