@@ -84,7 +84,7 @@ const tealbase = createClient<Database>(URL, KEY)
   if (error) {
     throw new Error(error.message)
   }
-  expectType<Database['public']['Tables']['users']['Row'] | null>(message.user)
+  expectType<Database['public']['Tables']['users']['Row']>(message.user)
 }
 
 // one-to-many relationship
@@ -99,8 +99,11 @@ const tealbase = createClient<Database>(URL, KEY)
 // referencing missing column
 {
   type SelectQueryError<Message extends string> = { error: true } & Message
+
   const res = await tealbase.from('users').select('username, dat')
-  expectType<PostgrestSingleResponse<SelectQueryError<`Referencing missing column \`dat\``>[]>>(res)
+  expectType<
+    PostgrestSingleResponse<SelectQueryError<"column 'dat' does not exist on 'users'.">[]>
+  >(res)
 }
 
 // one-to-one relationship
@@ -115,4 +118,21 @@ const tealbase = createClient<Database>(URL, KEY)
   expectType<Database['public']['Tables']['channel_details']['Row'] | null>(
     channels.channel_details
   )
+}
+
+// throwOnError in chaining
+{
+  const { data: channels, error } = await tealbase
+    .from('channels')
+    .select('channel_details(*)')
+    .throwOnError()
+  expectType<typeof error>(null)
+  expectType<
+    {
+      channel_details: {
+        details: string | null
+        id: number
+      } | null
+    }[]
+  >(channels)
 }

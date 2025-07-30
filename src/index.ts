@@ -3,10 +3,10 @@ import type { GenericSchema, tealbaseClientOptions } from './lib/types'
 
 export * from '@tealbase/auth-js'
 export type { User as AuthUser, Session as AuthSession } from '@tealbase/auth-js'
-export type {
-  PostgrestResponse,
-  PostgrestSingleResponse,
-  PostgrestMaybeSingleResponse,
+export {
+  type PostgrestResponse,
+  type PostgrestSingleResponse,
+  type PostgrestMaybeSingleResponse,
   PostgrestError,
 } from '@tealbase/postgrest-js'
 export {

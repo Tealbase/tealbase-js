@@ -47,11 +47,11 @@ export default class tealbaseClient<
   protected authUrl: string
   protected storageUrl: string
   protected functionsUrl: string
-  protected rest: PostgrestClient<Database, SchemaName>
+  protected rest: PostgrestClient<Database, SchemaName, Schema>
   protected storageKey: string
   protected fetch?: Fetch
   protected changedAccessToken?: string
-  protected accessToken?: () => Promise<string>
+  protected accessToken?: () => Promise<string | null>
 
   protected headers: Record<string, string>
 
@@ -117,10 +117,9 @@ export default class tealbaseClient<
     }
 
     this.fetch = fetchWithAuth(tealbaseKey, this._getAccessToken.bind(this), settings.global.fetch)
-
     this.realtime = this._initRealtimeClient({
       headers: this.headers,
-      accessToken: this._getAccessToken,
+      accessToken: this._getAccessToken.bind(this),
       ...settings.realtime,
     })
     this.rest = new PostgrestClient(`${_tealbaseUrl}/rest/v1`, {
@@ -225,7 +224,9 @@ export default class tealbaseClient<
         ? Fn['Returns'][number]
         : never
       : never,
-    Fn['Returns']
+    Fn['Returns'],
+    FnName,
+    null
   > {
     return this.rest.rpc(fn, args, options)
   }
@@ -307,7 +308,7 @@ export default class tealbaseClient<
       fetch,
       // auth checks if there is a custom authorizaiton header using this flag
       // so it knows whether to return an error when getUser is called with no session
-      hasCustomAuthorizationHeader: 'Authorization' in this.headers ?? false,
+      hasCustomAuthorizationHeader: 'Authorization' in this.headers,
     })
   }
 
@@ -336,8 +337,7 @@ export default class tealbaseClient<
     ) {
       this.changedAccessToken = token
     } else if (event === 'SIGNED_OUT') {
-      // Token is removed
-      this.realtime.setAuth(this.tealbaseKey)
+      this.realtime.setAuth()
       if (source == 'STORAGE') this.auth.signOut()
       this.changedAccessToken = undefined
     }
